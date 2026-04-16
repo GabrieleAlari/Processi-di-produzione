@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciclo Produttivo della Stampa — Gabriele Alari</title>
+<style>
+@import url('https://fonts.cdnfonts.com/css/gilroy-free');
+
+:root {
+  --k: #06060a;
+  --g: #0c0c14;
+  --g2: #121220;
+  --b: #0055FF;
+  --el: #00CFFF;
+  --w: #EEEEF5;
+  --dim: rgba(238,238,245,.38);
+  --br: rgba(0,207,255,.1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--k); color: var(--w); font-family: 'Gilroy', sans-serif; overflow-x: hidden; }
+* { cursor: none !important; }
+
+/* ── CURSOR ─────────────────────── */
+#C { position: fixed; width: 9px; height: 9px; background: var(--el); border-radius: 50%; top: 0; left: 0; z-index: 99999; pointer-events: none; transform: translate(-50%,-50%); transition: width .15s, height .15s, background .18s; }
+#CR { position: fixed; width: 36px; height: 36px; border: 1px solid rgba(0,207,255,.38); border-radius: 50%; top: 0; left: 0; z-index: 99998; pointer-events: none; transform: translate(-50%,-50%); }
+body.hov #C { width: 14px; height: 14px; background: #fff; }
+body.hov #CR { border-color: var(--el); border-width: 1.5px; }
+body.draw-mode * { cursor: crosshair !important; }
+
+/* ── LOADER ─────────────────────── */
+#LOAD { position: fixed; inset: 0; background: var(--k); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+.sl { position: absolute; height: 1px; left: 0; right: 0; background: linear-gradient(90deg,transparent,rgba(0,207,255,.13),transparent); animation: slA linear infinite; }
+.s1{top:14%;animation-duration:8s} .s2{top:29%;animation-duration:11s;animation-delay:-3s}
+.s3{top:47%;animation-duration:9.5s;animation-delay:-6s} .s4{top:63%;animation-duration:13s;animation-delay:-1.5s}
+.s5{top:79%;animation-duration:10s;animation-delay:-4.5s}
+@keyframes slA { 0%{transform:scaleX(.04) translateX(-20vw);opacity:0} 15%{opacity:1} 85%{opacity:1} 100%{transform:scaleX(1.3) translateX(10vw);opacity:0} }
+#PSVG { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+#LT { position: relative; z-index: 2; text-align: center; opacity: 0; animation: fu .8s 3.3s forwards; }
+#lt1 { font-size: clamp(.9rem,3vw,1.7rem); font-weight: 800; letter-spacing: .3em; text-transform: uppercase; }
+#lt2 { font-size: .68rem; letter-spacing: .42em; text-transform: uppercase; color: rgba(0,207,255,.5); margin-top: .5rem; }
+#LB { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,transparent,var(--el),var(--b)); transform: scaleX(0); transform-origin: left; animation: bg 3.6s .5s cubic-bezier(.4,0,.2,1) forwards; }
+@keyframes bg { to { transform: scaleX(1); } }
+@keyframes fu { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+#LOAD.out { animation: lout .85s 4.6s cubic-bezier(.7,0,.3,1) forwards; }
+@keyframes lout { to { opacity:0; transform:scale(1.04); pointer-events:none; } }
+
+/* ── NOISE ──────────────────────── */
+body::after { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); opacity:.025; pointer-events:none; z-index:8000; }
+
+/* ── HERO ───────────────────────── */
+#hero { min-height: 100vh; display: grid; grid-template-rows: auto 1fr auto; position: relative; overflow: hidden; }
+.hgrid { position: absolute; inset: 0; background-image: linear-gradient(rgba(0,85,255,.06) 1px,transparent 1px), linear-gradient(90deg,rgba(0,85,255,.06) 1px,transparent 1px); background-size: 65px 65px; animation: gm 22s linear infinite; }
+@keyframes gm { from{background-position:0 0} to{background-position:65px 65px} }
+.orb { position: absolute; border-radius: 50%; filter: blur(88px); pointer-events: none; animation: of ease-in-out infinite alternate; }
+.o1 { width: 640px; height: 640px; background: radial-gradient(circle,rgba(0,85,255,.18),transparent 65%); top: -220px; right: -180px; animation-duration: 9s; }
+.o2 { width: 420px; height: 420px; background: radial-gradient(circle,rgba(0,207,255,.08),transparent 65%); bottom: -110px; left: -110px; animation-duration: 12s; animation-delay: -4s; }
+@keyframes of { from{transform:translate(0,0) scale(1)} to{transform:translate(35px,-22px) scale(1.07)} }
+
+/* NAV */
+.nav { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 3rem; position: relative; z-index: 10; border-bottom: 1px solid rgba(255,255,255,.05); opacity: 0; animation: fd .7s 5s forwards; }
+@keyframes fd { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:none} }
+.logo { font-size: .9rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.logo em { font-style: normal; color: var(--el); }
+.nav-ul { display: flex; gap: 2rem; list-style: none; }
+.nav-ul a { font-size: .68rem; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); text-decoration: none; position: relative; transition: color .22s; }
+.nav-ul a::after { content: ''; position: absolute; left: 0; bottom: -2px; width: 100%; height: 1px; background: var(--el); transform: scaleX(0); transform-origin: left; transition: transform .3s cubic-bezier(.16,1,.3,1); }
+.nav-ul a:hover { color: var(--w); }
+.nav-ul a:hover::after { transform: scaleX(1); }
+
+/* HERO BODY */
+.hbody { display: flex; flex-direction: column; justify-content: center; padding: 5rem 3rem 3rem; position: relative; z-index: 10; }
+.heye { font-size: .65rem; font-weight: 700; letter-spacing: .3em; text-transform: uppercase; color: var(--el); margin-bottom: 1.5rem; opacity: 0; animation: fu .6s 5.2s forwards; }
+.hh1 { font-size: clamp(3rem,10vw,8.5rem); font-weight: 800; line-height: .88; text-transform: uppercase; letter-spacing: -.03em; margin-bottom: 2.5rem; }
+.hh1 .ln { display: block; overflow: hidden; }
+.hh1 .ln span { display: block; opacity: 0; transform: translateY(108%); }
+.hh1 .ln:nth-child(1) span { animation: lr .9s 5.4s cubic-bezier(.16,1,.3,1) forwards; }
+.hh1 .ln:nth-child(2) span { animation: lr .9s 5.55s cubic-bezier(.16,1,.3,1) forwards; }
+.hh1 .ln:nth-child(3) span { animation: lr .9s 5.7s cubic-bezier(.16,1,.3,1) forwards; }
+.hh1 .ec { color: var(--el); }
+@keyframes lr { to { opacity:1; transform:none; } }
+.hrow { display: flex; align-items: flex-end; gap: 3rem; flex-wrap: wrap; opacity: 0; animation: fu .7s 6s forwards; }
+.hdesc { font-size: 1rem; font-weight: 300; color: var(--dim); line-height: 1.8; max-width: 400px; }
+.bts { display: flex; gap: 1rem; flex-wrap: wrap; }
+.mb { position: relative; display: inline-flex; align-items: center; gap: .5rem; padding: .95rem 2rem; font-family: 'Gilroy',sans-serif; font-size: .76rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; text-decoration: none; overflow: hidden; transition: box-shadow .3s; will-change: transform; }
+.mb.prim { background: var(--el); color: var(--k); }
+.mb.prim:hover { box-shadow: 0 0 38px rgba(0,207,255,.3); }
+.mb.gho { background: transparent; color: var(--dim); border: 1px solid rgba(255,255,255,.12); }
+.mb.gho:hover { color: var(--el); border-color: rgba(0,207,255,.35); }
+.mb::before { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,.22); transform: translateX(-112%) skewX(-20deg); transition: transform .38s; }
+.mb:hover::before { transform: translateX(112%) skewX(-20deg); }
+
+/* HERO FOOT */
+.hfoot { display: flex; border-top: 1px solid rgba(255,255,255,.05); position: relative; z-index: 10; opacity: 0; animation: fu .6s 6.3s forwards; }
+.hst { flex: 1; padding: 1.3rem 2rem; border-right: 1px solid rgba(255,255,255,.05); position: relative; overflow: hidden; transition: background .3s; }
+.hst:last-child { border-right: none; }
+.hst::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg,var(--b),var(--el)); transform: scaleX(0); transform-origin: left; transition: transform .45s cubic-bezier(.16,1,.3,1); }
+.hst:hover { background: rgba(0,207,255,.04); }
+.hst:hover::after { transform: scaleX(1); }
+.hN { display: block; font-size: 2rem; font-weight: 800; color: var(--el); line-height: 1; transition: transform .3s cubic-bezier(.16,1,.3,1); }
+.hst:hover .hN { transform: translateY(-3px); }
+.hL { display: block; font-size: .58rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); margin-top: .3rem; }
+
+/* ── SECTIONS ───────────────────── */
+.sec { padding: 6rem 3rem; position: relative; }
+.alt { background: var(--g); }
+.slbl { font-size: .6rem; font-weight: 700; letter-spacing: .28em; text-transform: uppercase; color: var(--el); margin-bottom: .8rem; }
+.sh { font-size: clamp(1.8rem,5vw,3.5rem); font-weight: 800; text-transform: uppercase; letter-spacing: -.02em; line-height: .94; margin-bottom: 2.5rem; }
+.sh .d { color: rgba(238,238,245,.12); }
+.sh .hl { background: linear-gradient(90deg,var(--b),var(--el)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.rv { opacity: 0; transform: translateY(32px); transition: opacity .85s cubic-bezier(.16,1,.3,1), transform .85s cubic-bezier(.16,1,.3,1); }
+.rv.on { opacity: 1; transform: none; }
+.d1{transition-delay:.08s} .d2{transition-delay:.16s} .d3{transition-delay:.24s} .d4{transition-delay:.32s}
+
+/* ── CHAPTER INTRO BAND ─────────── */
+.ch-band { display: flex; align-items: stretch; gap: 0; margin-bottom: 3rem; border: 1px solid var(--br); }
+.ch-num { width: 80px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 800; color: rgba(0,207,255,.1); border-right: 1px solid var(--br); flex-shrink: 0; }
+.ch-content { flex: 1; padding: 1.5rem 2rem; }
+.ch-label { font-size: .6rem; font-weight: 700; letter-spacing: .25em; text-transform: uppercase; color: var(--el); margin-bottom: .5rem; }
+.ch-title { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; margin-bottom: .6rem; }
+.ch-text { font-size: .88rem; color: var(--dim); line-height: 1.78; }
+.ch-text strong { color: rgba(238,238,245,.65); font-weight: 600; }
+
+/* ── CARD GRID ──────────────────── */
+.cgrid { display: grid; gap: 1px; background: rgba(255,255,255,.04); }
+.cg2 { grid-template-columns: 1fr 1fr; }
+.cg3 { grid-template-columns: repeat(3,1fr); }
+.cg4 { grid-template-columns: repeat(4,1fr); }
+.card { background: var(--k); padding: 2.2rem 2rem; position: relative; overflow: hidden; transition: background .4s, transform .38s cubic-bezier(.16,1,.3,1); }
+.alt .card { background: var(--g); }
+.card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 200px 180px at var(--mx,50%) var(--my,50%), rgba(0,207,255,.065), transparent); opacity: 0; transition: opacity .4s; pointer-events: none; }
+.card:hover::before { opacity: 1; }
+.card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,var(--b),var(--el)); transform: scaleX(0); transform-origin: left; transition: transform .5s cubic-bezier(.16,1,.3,1); }
+.card:hover::after { transform: scaleX(1); }
+.card:hover { transform: translateY(-4px); }
+.alt .card:hover { background: #0e0e1a; }
+.card:not(.alt):hover { background: #08080f; }
+.c-num { font-size: 5rem; font-weight: 800; color: rgba(255,255,255,.025); line-height: 1; position: absolute; top: .4rem; right: 1rem; pointer-events: none; transition: color .3s; }
+.card:hover .c-num { color: rgba(0,207,255,.055); }
+.c-ico { width: 42px; height: 42px; border: 1px solid var(--br); display: flex; align-items: center; justify-content: center; margin-bottom: 1.3rem; font-size: .95rem; transition: border-color .3s, background .3s; }
+.card:hover .c-ico { border-color: rgba(0,207,255,.4); background: rgba(0,207,255,.07); }
+.c-title { font-size: 1.05rem; font-weight: 800; text-transform: uppercase; letter-spacing: -.005em; margin-bottom: .7rem; line-height: 1.1; }
+.c-body { font-size: .84rem; color: var(--dim); line-height: 1.78; }
+.c-body strong { color: rgba(238,238,245,.62); font-weight: 600; }
+.c-tags { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: 1.2rem; }
+.ctag { font-size: .58rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; padding: .26rem .65rem; border: 1px solid var(--br); color: rgba(0,207,255,.55); transition: border-color .28s, color .28s; }
+.card:hover .ctag { border-color: rgba(0,207,255,.35); color: var(--el); }
+
+/* ── INK CARDS ──────────────────── */
+.ink-card { border: 1px solid var(--br); padding: 1.8rem 1.6rem; position: relative; overflow: hidden; background: var(--k); transition: border-color .3s, transform .32s cubic-bezier(.16,1,.3,1); }
+.alt .ink-card { background: var(--g2); }
+.ink-card:hover { border-color: rgba(0,207,255,.28); transform: translateY(-3px); }
+.ink-card::before { content: ''; position: absolute; top: 0; left: 0; width: 2px; height: 0; background: linear-gradient(180deg,var(--b),var(--el)); transition: height .42s cubic-bezier(.16,1,.3,1); }
+.ink-card:hover::before { height: 100%; }
+.ink-name { font-size: .9rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .3rem; color: var(--w); }
+.ink-sub { font-size: .62rem; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: rgba(0,207,255,.55); margin-bottom: .9rem; }
+.ink-body { font-size: .82rem; color: var(--dim); line-height: 1.75; }
+.ink-body strong { color: rgba(238,238,245,.6); font-weight: 600; }
+.ink-props { margin-top: 1rem; display: flex; flex-direction: column; gap: .28rem; }
+.ip { font-size: .75rem; color: var(--dim); display: flex; align-items: flex-start; gap: .45rem; line-height: 1.45; }
+.ip.ok::before { content: '✓'; color: var(--el); flex-shrink: 0; font-weight: 700; }
+.ip.no::before { content: '—'; color: rgba(255,100,100,.5); flex-shrink: 0; }
+
+/* ── COMPARISON TABLE ───────────── */
+.ctbl { width: 100%; border-collapse: collapse; margin-top: 2rem; }
+.ctbl th { font-size: .6rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); padding: .75rem 1rem; border-bottom: 1px solid rgba(255,255,255,.06); text-align: left; }
+.ctbl td { font-size: .8rem; color: var(--dim); padding: .7rem 1rem; border-bottom: 1px solid rgba(255,255,255,.04); transition: color .2s, background .2s; }
+.ctbl tr:hover td { background: rgba(0,207,255,.03); color: var(--w); }
+.ctbl td:first-child { color: var(--w); font-weight: 700; }
+.tok { display: inline-block; font-size: .6rem; padding: .15rem .5rem; background: rgba(0,207,255,.1); border: 1px solid rgba(0,207,255,.2); color: var(--el); }
+.tno { display: inline-block; font-size: .6rem; padding: .15rem .5rem; background: rgba(255,80,80,.07); border: 1px solid rgba(255,80,80,.14); color: rgba(255,110,110,.65); }
+.tmd { display: inline-block; font-size: .6rem; padding: .15rem .5rem; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); color: var(--dim); }
+
+/* ── DTP FLOW DIAGRAM ───────────── */
+.flow-wrap { display: flex; flex-direction: column; gap: .7rem; }
+.flow-row { display: flex; align-items: center; gap: .65rem; }
+.fbox { flex: 1; border: 1px solid var(--br); padding: .65rem .9rem; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); text-align: center; transition: border-color .35s, color .35s, background .35s; }
+.fbox.lit { border-color: rgba(0,207,255,.45); color: var(--el); background: rgba(0,207,255,.07); }
+.farr { color: rgba(255,255,255,.14); font-size: .8rem; flex-shrink: 0; }
+.fdown { padding-left: 3.5rem; color: rgba(255,255,255,.14); font-size: .8rem; }
+
+/* ── GANTT ──────────────────────── */
+.g-wrap { margin-top: 2rem; }
+.g-head { display: grid; grid-template-columns: 160px 1fr; gap: 1rem; margin-bottom: .4rem; }
+.g-hcell { font-size: .58rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: rgba(255,255,255,.18); text-align: right; }
+.g-hcells { display: flex; justify-content: space-between; }
+.g-hcell2 { font-size: .55rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.15); }
+.g-row { display: grid; grid-template-columns: 160px 1fr; gap: 1rem; align-items: center; margin-bottom: .9rem; }
+.g-lbl { font-size: .67rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); text-align: right; line-height: 1.3; }
+.g-trk { height: 30px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); position: relative; overflow: hidden; transition: background .25s; }
+.g-trk:hover { background: rgba(255,255,255,.05); }
+.gbar { height: 100%; position: absolute; display: flex; align-items: center; padding: 0 .8rem; font-size: .58rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; transform: scaleX(0); transform-origin: left; transition: transform .85s cubic-bezier(.16,1,.3,1); white-space: nowrap; }
+.gbar.on { transform: scaleX(1); }
+.g-trk:hover .gbar { filter: brightness(1.2); }
+.gb1 { background: var(--b); color: #fff; left: 0; width: 22%; transition-delay: .05s; }
+.gb2 { background: rgba(0,85,255,.5); color: #fff; left: 12%; width: 28%; transition-delay: .17s; }
+.gb3 { background: rgba(0,150,220,.65); color: #fff; left: 30%; width: 26%; transition-delay: .3s; }
+.gb4 { background: var(--el); color: var(--k); left: 48%; width: 20%; transition-delay: .43s; }
+.gb5 { background: rgba(0,207,255,.25); color: var(--el); left: 60%; width: 22%; transition-delay: .55s; }
+.gb6 { background: rgba(0,85,255,.35); color: rgba(0,207,255,.8); left: 72%; width: 18%; transition-delay: .67s; }
+.gb7 { background: rgba(0,207,255,.14); color: rgba(0,207,255,.6); left: 80%; width: 20%; transition-delay: .78s; }
+.g-legend { display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,.05); }
+.gl { display: flex; align-items: center; gap: .5rem; font-size: .62rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.gl-d { width: 10px; height: 10px; flex-shrink: 0; }
+.g-note { font-size: .82rem; color: var(--dim); line-height: 1.72; padding: 1.2rem 1.5rem; border: 1px solid var(--br); background: rgba(0,207,255,.035); margin-top: 1.5rem; }
+.g-note strong { color: rgba(238,238,245,.55); font-weight: 600; }
+
+/* ── PDF BLOCKS ─────────────────── */
+.pdf-row { display: grid; grid-template-columns: repeat(4,1fr); gap: .8rem; margin-top: 1rem; }
+.pdb { background: var(--b); padding: 1.4rem 1.1rem; position: relative; overflow: hidden; transition: transform .25s cubic-bezier(.16,1,.3,1), background .2s; }
+.pdb:hover { transform: translateY(-6px) scale(1.02); background: var(--el); }
+.pdb:hover .pdb-n, .pdb:hover .pdb-d { color: var(--k); }
+.pdb-n { font-size: .95rem; font-weight: 800; color: #fff; margin-bottom: .3rem; transition: color .2s; }
+.pdb-d { font-size: .7rem; color: rgba(255,255,255,.5); line-height: 1.4; transition: color .2s; }
+.pdb::after { content: ''; position: absolute; width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,.07); bottom: -18px; right: -18px; }
+
+/* ── CHECKLIST ──────────────────── */
+.cklist { list-style: none; }
+.cki { display: flex; align-items: center; gap: .85rem; padding: .75rem 0; border-bottom: 1px solid rgba(255,255,255,.04); font-size: .83rem; color: var(--dim); transition: color .2s, padding-left .27s cubic-bezier(.16,1,.3,1); }
+.cki:hover { color: var(--w); padding-left: .45rem; }
+.cki:last-child { border: none; }
+.ckb { width: 17px; height: 17px; flex-shrink: 0; border: 1px solid rgba(0,207,255,.22); display: flex; align-items: center; justify-content: center; font-size: .52rem; color: transparent; transition: background .2s, border-color .2s, color .2s; }
+.cki:hover .ckb { background: rgba(0,207,255,.12); border-color: var(--el); color: var(--el); }
+
+/* ── QUOTE ──────────────────────── */
+#qsec { padding: 7rem 3rem; position: relative; overflow: hidden; }
+#qsec::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0,85,255,.12), transparent); animation: br 7s infinite alternate; }
+@keyframes br { from{opacity:.4;transform:scale(.94)} to{opacity:1;transform:scale(1.06)} }
+.qt { font-size: clamp(1.4rem,4vw,2.8rem); font-weight: 800; text-transform: uppercase; letter-spacing: -.02em; line-height: 1.1; color: var(--w); max-width: 820px; position: relative; z-index: 1; }
+.qt .hlg { background: linear-gradient(90deg,var(--b),var(--el)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.qt-by { font-size: .62rem; font-weight: 600; letter-spacing: .25em; text-transform: uppercase; color: var(--dim); margin-top: 2rem; position: relative; z-index: 1; }
+
+/* ── BOARD SECTION ──────────────── */
+#board-sec { background: var(--g); padding: 5rem 3rem; }
+.board-wrap { margin-top: 2rem; background: #10101e; border: 1px solid rgba(0,207,255,.15); position: relative; border-radius: 2px; }
+.board-toolbar { display: flex; align-items: center; gap: .8rem; padding: .85rem 1.2rem; border-bottom: 1px solid rgba(0,207,255,.1); flex-wrap: wrap; }
+.tb-label { font-size: .6rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: rgba(0,207,255,.5); margin-right: .4rem; }
+.tb-btn { font-family: 'Gilroy', sans-serif; font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: .45rem .9rem; border: 1px solid rgba(255,255,255,.1); background: transparent; color: var(--dim); transition: border-color .22s, color .22s, background .22s; }
+.tb-btn:hover { border-color: rgba(0,207,255,.35); color: var(--el); background: rgba(0,207,255,.06); }
+.tb-btn.act { border-color: var(--el); color: var(--el); background: rgba(0,207,255,.1); }
+.tb-sep { width: 1px; height: 20px; background: rgba(255,255,255,.08); flex-shrink: 0; }
+.tb-color { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; transition: border-color .2s; flex-shrink: 0; }
+.tb-color.sel { border-color: var(--w); }
+.tb-sz { font-size: .65rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); display: flex; align-items: center; gap: .5rem; }
+.tb-sz input[type=range] { width: 80px; accent-color: var(--el); }
+.tb-clear { margin-left: auto; font-family: 'Gilroy',sans-serif; font-size: .62rem; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; padding: .4rem .9rem; border: 1px solid rgba(255,80,80,.25); background: transparent; color: rgba(255,100,100,.5); transition: border-color .22s, color .22s, background .22s; }
+.tb-clear:hover { border-color: rgba(255,80,80,.6); color: rgba(255,120,120,.85); background: rgba(255,50,50,.07); }
+#board { display: block; width: 100%; height: 500px; touch-action: none; background: transparent; }
+.board-hint { text-align: center; padding: .6rem; font-size: .62rem; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: rgba(0,207,255,.3); border-top: 1px solid rgba(0,207,255,.07); }
+
+/* ── POPUP ──────────────────────── */
+#popup { position: fixed; bottom: 2rem; right: 2rem; background: var(--g); border: 1px solid var(--br); padding: 1.2rem 1.4rem; max-width: 268px; z-index: 7000; transform: translateY(28px) scale(.95); opacity: 0; pointer-events: none; transition: transform .5s cubic-bezier(.16,1,.3,1), opacity .38s; }
+#popup::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg,var(--b),var(--el)); }
+#popup.show { transform: none; opacity: 1; pointer-events: auto; }
+.plbl { font-size: .56rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--el); margin-bottom: .4rem; }
+#popup p { font-size: .79rem; color: var(--dim); line-height: 1.55; }
+#px { position: absolute; top: .55rem; right: .75rem; background: none; border: none; color: rgba(238,238,245,.2); font-size: .85rem; transition: color .2s; }
+#px:hover { color: var(--el); }
+
+/* ── FOOTER ─────────────────────── */
+footer { background: var(--g2); border-top: 1px solid rgba(255,255,255,.05); padding: 3rem 3rem; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 2rem; }
+.fn { font-size: clamp(1.8rem,5vw,3rem); font-weight: 800; text-transform: uppercase; letter-spacing: -.02em; line-height: .95; }
+.fn em { font-style: normal; color: var(--el); }
+.fs { font-size: .6rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--dim); margin-top: .4rem; }
+.fy { font-size: .6rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: rgba(238,238,245,.14); }
+
+@media(max-width:860px){
+  .cg2,.cg3,.cg4{grid-template-columns:1fr}
+  .cgrid{gap:2px}
+  .pdf-row{grid-template-columns:1fr 1fr}
+  .g-row,.g-head{grid-template-columns:90px 1fr}
+  footer{flex-direction:column;align-items:flex-start}
+  .nav-ul{display:none}
+  .sec{padding:4rem 1.5rem}
+  .hbody{padding:4rem 1.5rem 2rem}
+}
+</style>
+</head>
+<body>
+
+<div id="C"></div>
+<div id="CR"></div>
+
+<!-- ═══ LOADER ═══ -->
+<div id="LOAD">
+  <div class="sl s1"></div><div class="sl s2"></div>
+  <div class="sl s3"></div><div class="sl s4"></div><div class="sl s5"></div>
+
+  <svg id="PSVG" viewBox="0 0 100 100" preserveAspectRatio="none">
+    <defs>
+      <filter id="pf" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b"/>
+        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <linearGradient id="tg" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="transparent"/>
+        <stop offset="100%" stop-color="#00CFFF" stop-opacity=".6"/>
+      </linearGradient>
+    </defs>
+    <line id="TR" x1="7" y1="90" x2="7" y2="90" stroke="url(#tg)" stroke-width=".45" opacity="0"/>
+    <circle id="TG" r="1.3" fill="rgba(0,207,255,.65)" opacity="0" filter="url(#pf)"/>
+    <g id="PL" filter="url(#pf)">
+      <polygon points="0,-7 22,0 0,3" fill="#00CFFF"/>
+      <polygon points="0,-7 10,-1.8 0,3" fill="rgba(0,85,255,.6)"/>
+      <polygon points="0,3 -4,8 7,4" fill="rgba(0,207,255,.42)"/>
+      <line x1="0" y1="-7" x2="10" y2="-1.8" stroke="rgba(255,255,255,.25)" stroke-width=".38"/>
+    </g>
+  </svg>
+
+  <div id="LT">
+    <div id="lt1">Ciclo Produttivo</div>
+    <div id="lt2">Gabriele Alari &nbsp;·&nbsp; Grafica &amp; Stampa</div>
+  </div>
+  <div id="LB"></div>
+</div>
+
+<!-- ═══ POPUP ═══ -->
+<div id="popup">
+  <button id="px" onclick="closePopup()">✕</button>
+  <div class="plbl">⚡ Tip</div>
+  <p>Usa la lavagna in fondo alla pagina per prendere appunti durante la presentazione.</p>
+</div>
+
+<!-- ═══ HERO ═══ -->
+<div id="hero">
+  <div class="hgrid"></div>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+
+  <nav class="nav">
+    <div class="logo">G<em>.</em>Alari</div>
+    <ul class="nav-ul">
+      <li><a href="#cap1">Progetto</a></li>
+      <li><a href="#cap2">Pre-stampa</a></li>
+      <li><a href="#cap3">Stampa</a></li>
+      <li><a href="#cap4">Post-stampa</a></li>
+      <li><a href="#gantt">Gantt</a></li>
+      <li><a href="#board-sec">Lavagna</a></li>
+    </ul>
+  </nav>
+
+  <div class="hbody">
+    <div class="heye">✦ Grafica &amp; Comunicazione visiva — 2025</div>
+    <h1 class="hh1">
+      <span class="ln"><span>Ciclo</span></span>
+      <span class="ln"><span>Produttivo</span></span>
+      <span class="ln"><span class="ec">Stampa</span></span>
+    </h1>
+    <div class="hrow">
+      <p class="hdesc">Dalla moodboard alla post-stampa: tutto ciò che bisogna sapere per realizzare un prodotto stampato professionale.</p>
+      <div class="bts">
+        <a href="#cap1" class="mb prim" id="b1">Inizia ↓</a>
+        <a href="#board-sec" class="mb gho" id="b2">Lavagna ✎</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="hfoot">
+    <div class="hst"><span class="hN" data-t="3">0</span><span class="hL">Macro-fasi</span></div>
+    <div class="hst"><span class="hN" data-t="5">0</span><span class="hL">Capitoli</span></div>
+    <div class="hst"><span class="hN" data-t="4">0</span><span class="hL">Tipi inchiostro</span></div>
+    <div class="hst"><span class="hN" data-t="4">0</span><span class="hL">Standard PDF</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     CAP 1 — PROGETTO & MOODBOARD
+═══════════════════════════════ -->
+<section id="cap1" class="sec alt">
+  <div class="slbl rv">Capitolo 01</div>
+  <h2 class="sh rv d1">Progetto &amp; <span class="hl">Moodboard</span></h2>
+
+  <div class="ch-band rv d2">
+    <div class="ch-num">01</div>
+    <div class="ch-content">
+      <div class="ch-label">Punto di partenza</div>
+      <div class="ch-title">Cos'è un progetto grafico</div>
+      <div class="ch-text">Un <strong>progetto grafico</strong> è un insieme coordinato di decisioni creative e tecniche che porta alla realizzazione di un prodotto di comunicazione visiva. Si avvia con un <strong>brief</strong> — il documento che fissa obiettivi, pubblico di riferimento, budget e tempi. Senza brief, non c'è progetto: c'è confusione.</div>
+    </div>
+  </div>
+
+  <div class="cgrid cg3 rv d3">
+    <div class="card">
+      <div class="c-num">1</div>
+      <div class="c-ico">◈</div>
+      <div class="c-title">Brief</div>
+      <div class="c-body">Il documento che avvia tutto. Definisce <strong>obiettivo della comunicazione</strong>, target, tono di voce, formato, budget e scadenze. È il contratto creativo tra cliente e designer.</div>
+    </div>
+    <div class="card">
+      <div class="c-num">2</div>
+      <div class="c-ico">◉</div>
+      <div class="c-title">Concept &amp; Idea</div>
+      <div class="c-body">Dalla ricerca nasce il concept: l'<strong>idea guida</strong> che dà coerenza a tutto il progetto. Definisce il messaggio principale e come comunicarlo visivamente in modo efficace e memorabile.</div>
+    </div>
+    <div class="card">
+      <div class="c-num">3</div>
+      <div class="c-ico">◇</div>
+      <div class="c-title">Fasi del progetto</div>
+      <div class="c-body"><strong>Analisi → Concept → Progettazione → Realizzazione → Produzione → Consegna.</strong> Ogni fase dipende dalla precedente. Saltarne una è la causa principale degli errori costosi in tipografia.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:1.5px;background:rgba(255,255,255,.04)">
+    <div class="cgrid cg2">
+      <div class="card">
+        <div class="c-ico">▣</div>
+        <div class="c-title">Cos'è una Moodboard</div>
+        <div class="c-body">
+          La <strong>moodboard</strong> è una raccolta visiva — immagini, colori, texture, font, riferimenti stilistici — che definisce l'atmosfera e la direzione estetica del progetto <em>prima</em> di iniziare a produrre.
+          <br><br>
+          Serve a <strong>comunicare visivamente</strong> un'idea che a parole sarebbe ambigua, a trovare un accordo col cliente prima di investire ore di lavoro, e a mantenere coerenza stilistica durante tutta la produzione.
+        </div>
+        <div class="c-tags">
+          <span class="ctag">Palette colori</span><span class="ctag">Tipografia</span><span class="ctag">Texture</span><span class="ctag">Immagini</span><span class="ctag">Stile</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="c-ico">▤</div>
+        <div class="c-title">Come si costruisce</div>
+        <div class="c-body">
+          Una moodboard efficace contiene:
+          <br><br>
+          <strong>• Palette cromatica</strong> — i colori principali e le loro variazioni<br>
+          <strong>• Campioni tipografici</strong> — font per titoli e corpo testo<br>
+          <strong>• Immagini di riferimento</strong> — fotografie, illustrazioni, texture<br>
+          <strong>• Esempi di layout</strong> — come gli elementi si organizzano nello spazio<br>
+          <strong>• Parole chiave</strong> — aggettivi che descrivono il tono (es. elegante, dinamico, minimale)
+          <br><br>
+          Strumenti: <strong>Pinterest, Milanote, Adobe Express, carta e forbici.</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     CAP 2 — PRE-STAMPA & DTP
+═══════════════════════════════ -->
+<section id="cap2" class="sec">
+  <div class="slbl rv">Capitolo 02</div>
+  <h2 class="sh rv d1">Pre-<span class="hl">Stampa</span></h2>
+
+  <div class="ch-band rv d2">
+    <div class="ch-num">02</div>
+    <div class="ch-content">
+      <div class="ch-label">Fase 1 del ciclo produttivo</div>
+      <div class="ch-title">Tutto ciò che avviene prima che la macchina parta</div>
+      <div class="ch-text">La pre-stampa è la fase più critica: <strong>errori qui costano caro</strong>. Include la preparazione digitale dei file, l'impaginazione, i controlli tecnici e l'approvazione del cliente. Un file "quasi giusto" è il peggior problema di una tipografia.</div>
+    </div>
+  </div>
+
+  <!-- DTP -->
+  <div style="margin-bottom:1.5px">
+    <div class="cgrid cg2 rv d3">
+      <div class="card">
+        <div class="c-num">DTP</div>
+        <div class="c-ico">⊞</div>
+        <div class="c-title">Desktop Publishing</div>
+        <div class="c-body">
+          Il <strong>DTP</strong> è l'insieme di software e tecniche per creare, impaginare e preparare documenti grafici da computer. Ha rivoluzionato il settore negli anni '80 eliminando la composizione tipografica manuale.
+          <br><br>
+          L'<strong>impaginazione</strong> organizza testi, immagini e grafici in uno spazio definito, gestendo griglie, colonne, margini, interlinea e gerarchie tipografiche. L'obiettivo è un documento leggibile, coerente e tecnicamente corretto per la stampa.
+        </div>
+        <div class="c-tags"><span class="ctag">InDesign</span><span class="ctag">Illustrator</span><span class="ctag">Griglie</span><span class="ctag">Tipografia</span></div>
+      </div>
+
+      <div class="card" style="padding:2rem">
+        <div class="c-ico">→</div>
+        <div class="c-title" style="margin-bottom:1.2rem">Flusso DTP</div>
+        <div class="flow-wrap" id="flowWrap">
+          <div class="flow-row">
+            <div class="fbox">Brief</div>
+            <div class="farr">→</div>
+            <div class="fbox">Moodboard</div>
+          </div>
+          <div class="fdown">↓</div>
+          <div class="flow-row">
+            <div class="fbox">Impaginazione</div>
+            <div class="farr">→</div>
+            <div class="fbox">Revisione</div>
+          </div>
+          <div class="fdown">↓</div>
+          <div class="flow-row">
+            <div class="fbox">Esportazione PDF/X</div>
+            <div class="farr">→</div>
+            <div class="fbox">Stampa</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sedicesimi, cianografia, acquisizione, PDF -->
+  <div class="cgrid cg2 rv d4" style="margin-top:1.5px">
+    <div class="card">
+      <div class="c-ico">⊠</div>
+      <div class="c-title">Sedicesimi e Imposition</div>
+      <div class="c-body">
+        Un <strong>sedicesimo</strong> è un foglio tipografico piegato quattro volte che genera 16 pagine. È l'unità base dei libri — per questo quasi sempre hanno un numero di pagine multiplo di 16 (128, 160, 256…).
+        <br><br>
+        L'<strong>imposition</strong> calcola dove posizionare ogni pagina sul foglio di stampa in modo che, dopo piegatura e taglio, le pagine risultino nell'ordine corretto. La pagina 2 non sta mai vicino alla 3 sul foglio fisico.
+      </div>
+      <div class="c-tags"><span class="ctag">Sedicesimi</span><span class="ctag">Segnature</span><span class="ctag">Imposition</span></div>
+    </div>
+
+    <div class="card">
+      <div class="c-ico">✎</div>
+      <div class="c-title">Cianografia — il controllo</div>
+      <div class="c-body">
+        La <strong>cianografia</strong> è una bozza di bassa qualità usata per verificare il layout prima della stampa definitiva. Non permette di valutare colori e finiture, ma rivela errori di testo, posizione e struttura.
+        <br><br>
+        Se approvata, il cliente firma il <strong style="color:var(--el)">"Visto si stampi"</strong> — da quel momento la responsabilità di eventuali errori passa a lui. È il punto di non ritorno del processo.
+      </div>
+    </div>
+  </div>
+
+  <!-- Acquisizione -->
+  <div class="cgrid cg3 rv d3" style="margin-top:1.5px">
+    <div class="card">
+      <div class="c-ico">◎</div>
+      <div class="c-title">OCR</div>
+      <div class="c-body">Il <strong>riconoscimento ottico dei caratteri</strong> converte immagini di testo in testo digitale modificabile. Fondamentale per digitalizzare documenti cartacei e recuperare testi da scansioni o fotografie.</div>
+    </div>
+    <div class="card">
+      <div class="c-ico">◑</div>
+      <div class="c-title">Fotomoltiplicatori (PMT)</div>
+      <div class="c-body">Dispositivi usati per la digitalizzazione di <strong>negativi fotografici e diapositive</strong> analogiche. Offrono altissima sensibilità e qualità superiore agli scanner CCD per materiale analogico professionale.</div>
+    </div>
+    <div class="card">
+      <div class="c-ico">▣</div>
+      <div class="c-title">Scanner CCD</div>
+      <div class="c-body">Lo scanner a <strong>sensore CCD</strong> digitalizza immagini, disegni e documenti cartacei ad alta risoluzione. Il sensore CCD cattura la luce riflessa riga per riga, producendo file ad alta definizione pronti per l'impaginazione.</div>
+    </div>
+  </div>
+
+  <!-- PDF -->
+  <div class="rv d4" style="margin-top:3rem">
+    <div class="slbl">Formato file — Standard PDF/X</div>
+    <p style="font-size:.86rem;color:var(--dim);line-height:1.75;max-width:660px;margin:.8rem 0 1.2rem">Il <strong style="color:rgba(238,238,245,.55)">PDF</strong> è il formato universale della stampa professionale. Le varianti PDF/X garantiscono che font, immagini e colori siano gestiti correttamente, eliminando le ambiguità che causano problemi in tipografia.</p>
+    <div class="pdf-row">
+      <div class="pdb"><div class="pdb-n">PDF/X-1a</div><div class="pdb-d">Standard rigido — massima compatibilità tipografica</div></div>
+      <div class="pdb"><div class="pdb-n">PDF/X-3</div><div class="pdb-d">Più flessibile — permette profili RGB</div></div>
+      <div class="pdb"><div class="pdb-n">PDF/X-4</div><div class="pdb-d">Supporta trasparenze native</div></div>
+      <div class="pdb"><div class="pdb-n">PDF/X-5</div><div class="pdb-d">Supporta risorse e contenuti esterni</div></div>
+    </div>
+  </div>
+
+  <!-- Colore -->
+  <div class="rv d4" style="margin-top:2rem;border:1px solid var(--br);padding:2rem;background:rgba(0,207,255,.025)">
+    <div class="slbl">Gestione del colore</div>
+    <p style="font-size:.86rem;color:var(--dim);line-height:1.78;max-width:720px">Tutti i dati colore devono essere convertiti nel <strong style="color:rgba(238,238,245,.55)">profilo ICC</strong> della macchina da stampa prima della produzione. Un profilo ICC descrive come un dispositivo interpreta i colori. Senza gestione corretta del colore, quello che vedi a schermo non corrisponde a quello che stampi. Il sistema di stampa professionale usa sempre <strong style="color:rgba(238,238,245,.55)">CMYK</strong> — Ciano, Magenta, Giallo, Nero.</p>
+    <ul class="cklist" style="margin-top:1.2rem;max-width:480px">
+      <li class="cki"><span class="ckb">✓</span>Font incorporati o convertiti in curve</li>
+      <li class="cki"><span class="ckb">✓</span>Immagini a 300 dpi — profilo CMYK</li>
+      <li class="cki"><span class="ckb">✓</span>Abbondanze (bleed) di 3mm su ogni lato</li>
+      <li class="cki"><span class="ckb">✓</span>Nessun colore RGB residuo</li>
+      <li class="cki"><span class="ckb">✓</span>PDF/X-1a o X-4 come formato di esportazione</li>
+      <li class="cki"><span class="ckb">✓</span>Cianografia approvata e firmata dal cliente</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     CAP 3 — STAMPA
+═══════════════════════════════ -->
+<section id="cap3" class="sec alt">
+  <div class="slbl rv">Capitolo 03</div>
+  <h2 class="sh rv d1">La <span class="hl">Stampa</span></h2>
+
+  <div class="ch-band rv d2">
+    <div class="ch-num">03</div>
+    <div class="ch-content">
+      <div class="ch-label">Fase 2 del ciclo produttivo</div>
+      <div class="ch-title">Offset e stampa digitale — due mondi diversi</div>
+      <div class="ch-text">La <strong>stampa offset</strong> usa lastre fisiche e inchiostri grassi: eccelle per grandi tirature con qualità impeccabile. La <strong>stampa digitale</strong> trasferisce l'immagine direttamente dal file senza lastre: più flessibile, ideale per piccole tirature e personalizzazione.</div>
+    </div>
+  </div>
+
+  <!-- Stampa digitale intro -->
+  <div class="cgrid cg2 rv d3">
+    <div class="card">
+      <div class="c-num">INK</div>
+      <div class="c-ico">▣</div>
+      <div class="c-title">Stampa Inkjet</div>
+      <div class="c-body">
+        La tecnologia a <strong>getto di inchiostro</strong> usa testine che sparano micro-gocce di inchiostro direttamente sul supporto. Nessuna lastra, nessuna matrice: il file digitale va direttamente in stampa.
+        <br><br>
+        Le testine possono essere <strong>termiche</strong> (il calore crea una bolla che espelle l'inchiostro) o <strong>piezoelettriche</strong> (la deformazione meccanica di cristalli espelle l'inchiostro — più precise e durature).
+        <br><br>
+        Limite principale: su carta assorbente le gocce si espandono, riducendo la nitidezza. Per questo esistono carte speciali "inkjet-coated".
+      </div>
+      <div class="c-tags"><span class="ctag">Piccole tirature</span><span class="ctag">Personalizzazione</span><span class="ctag">Senza lastra</span></div>
+    </div>
+
+    <div class="card">
+      <div class="c-num">PLT</div>
+      <div class="c-ico">⊞</div>
+      <div class="c-title">Plotter — Grande formato</div>
+      <div class="c-body">
+        Il <strong>plotter</strong> è una stampante inkjet di grande formato. Esistono due configurazioni:
+        <br><br>
+        <strong>Roll-to-roll:</strong> il supporto è in bobina e scorre dentro il plotter. La larghezza dipende dalla macchina (da 60 cm fino a 5 m), la lunghezza è praticamente illimitata. Ideale per banner, vinili, teli.
+        <br><br>
+        <strong>Flatbed (piano):</strong> il supporto è un pannello rigido su un piano orizzontale. Permette la stampa diretta su forex, dibond, legno, plexiglass, vetro — senza incollaggio.
+        <br><br>
+        La vera differenza tra i plotter sta nel <strong>tipo di inchiostro</strong>.
+      </div>
+      <div class="c-tags"><span class="ctag">Grande formato</span><span class="ctag">Roll-to-roll</span><span class="ctag">Flatbed</span></div>
+    </div>
+  </div>
+
+  <!-- INCHIOSTRI -->
+  <div class="rv d4" style="margin-top:3rem">
+    <div class="slbl">Tipi di inchiostro per plotter</div>
+    <div class="cgrid cg2" style="margin-top:1.2rem;gap:1px">
+      <div class="ink-card">
+        <div class="ink-name">Inchiostro base acqua</div>
+        <div class="ink-sub">Dye &amp; Pigmento</div>
+        <div class="ink-body">
+          Il più economico e semplice. Disponibile in due versioni: <strong>colorante (dye)</strong> — il pigmento si scioglie nell'acqua e penetra nelle fibre della carta, producendo colori brillanti ma poco resistenti alla luce; <strong>pigmento</strong> — le particelle rimangono in sospensione e si depositano in superficie, più durature e con colori più naturali.
+          <br><br>
+          Applicazioni: fotografia professionale, stampe d'arte, documenti CAD, ufficio.
+        </div>
+        <div class="ink-props">
+          <div class="ip ok">Economico e immediatamente pronto</div>
+          <div class="ip ok">Eccellente qualità fotografica</div>
+          <div class="ip ok">Nessuna emissione nociva</div>
+          <div class="ip no">Solo per carta — no vinili o PVC</div>
+          <div class="ip no">Non adatto all'esterno</div>
+        </div>
+      </div>
+
+      <div class="ink-card">
+        <div class="ink-name">Inchiostro Ecosolvente</div>
+        <div class="ink-sub">Base solvente biodegradabile</div>
+        <div class="ink-body">
+          Evoluzione degli inchiostri a solvente tradizionali. Il <strong>solvente biodegradabile</strong> — meno aggressivo del solvente puro — penetra nel substrato sintetico e, evaporando, fissa il pigmento. Questo permette la stampa su vinile, PVC, banner e materiali sintetici resistenti all'esterno.
+          <br><br>
+          Rispetto al solvente tradizionale emette meno COV (Composti Organici Volatili), ma la ventilazione dell'ambiente rimane necessaria.
+        </div>
+        <div class="ink-props">
+          <div class="ip ok">Alta durabilità — resiste agli agenti atmosferici</div>
+          <div class="ip ok">Colori intensi e profondi</div>
+          <div class="ip ok">Stampa su vinile, PVC, banner</div>
+          <div class="ip no">Emette ancora COV (ventilare)</div>
+          <div class="ip no">Tempi di asciugatura più lunghi</div>
+          <div class="ip no">Manutenzione frequente delle testine</div>
+        </div>
+      </div>
+
+      <div class="ink-card">
+        <div class="ink-name">Inchiostro Latex</div>
+        <div class="ink-sub">HP — introdotto nel 2008</div>
+        <div class="ink-body">
+          Composto da <strong>acqua, pigmenti e polimeri di lattice sintetico</strong>. Dopo la stampa, l'aria calda evapora l'acqua e i polimeri si fondono formando un film protettivo e resistente sul supporto.
+          <br><br>
+          È la tecnologia più <strong>ecologica</strong> del grande formato: zero COV, certificazioni Greenguard ed Ecologo, asciugatura immediata, completamente inodore. Può stampare su carta, vinile, tessuti, PVC e molti materiali non convenzionali.
+          <br><br>
+          Nasce come alternativa sostenibile all'ecosolvente mantenendone la versatilità.
+        </div>
+        <div class="ink-props">
+          <div class="ip ok">Zero emissioni nocive — zero COV</div>
+          <div class="ip ok">Asciugatura immediata — pronto subito</div>
+          <div class="ip ok">Certificato Greenguard ed Ecologo</div>
+          <div class="ip ok">Stampa su carta, vinile, tessuti</div>
+          <div class="ip ok">Resistente ad acqua, graffi, UV</div>
+          <div class="ip no">Costo macchina e inchiostro elevato</div>
+          <div class="ip no">Maggiore consumo energetico per il calore</div>
+        </div>
+      </div>
+
+      <div class="ink-card">
+        <div class="ink-name">Inchiostro UV</div>
+        <div class="ink-sub">Fotopolimerizzazione</div>
+        <div class="ink-body">
+          Contiene pigmenti e <strong>foto-iniziatori</strong> sensibili ai raggi UV. Appena depositato, lampade UV (LED o alogene) attivano la <strong>fotopolimerizzazione</strong>: i pigmenti si solidificano istantaneamente creando uno strato duro e coprente.
+          <br><br>
+          È l'unica tecnologia che permette la stampa diretta su materiali <strong>non porosi</strong>: forex, dibond, plexiglass, legno, vetro, metalli. Grazie all'effetto coprente funziona anche su fondi scuri. Permette effetti in rilievo (embossing digitale).
+          <br><br>
+          Limite: lo strato indurito è rigido — se il materiale viene piegato, l'inchiostro si crepa.
+        </div>
+        <div class="ink-props">
+          <div class="ip ok">Asciugatura istantanea — UV polimerizza in secondi</div>
+          <div class="ip ok">Stampa su materiali rigidi non porosi</div>
+          <div class="ip ok">Alta coprenza anche su fondi scuri</div>
+          <div class="ip ok">Stampa in rilievo possibile</div>
+          <div class="ip no">Inchiostro rigido — si crepa se piegato</div>
+          <div class="ip no">Non adatto a materiali elastici (es. tessuti)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFRONTO -->
+    <table class="ctbl rv d4" style="margin-top:2rem">
+      <thead>
+        <tr>
+          <th>Inchiostro</th><th>Carta</th><th>Vinile/PVC</th><th>Rigidi</th><th>Esterno</th><th>Ecologia</th><th>Asciugatura</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Base acqua</td><td><span class="tok">✓ Ottimo</span></td><td><span class="tno">✗ No</span></td><td><span class="tno">✗ No</span></td><td><span class="tno">✗ No</span></td><td><span class="tok">Alta</span></td><td><span class="tmd">Normale</span></td></tr>
+        <tr><td>Ecosolvente</td><td><span class="tmd">Limitato</span></td><td><span class="tok">✓ Sì</span></td><td><span class="tmd">Parziale</span></td><td><span class="tok">✓ Sì</span></td><td><span class="tmd">Media</span></td><td><span class="tno">Lenta</span></td></tr>
+        <tr><td>Latex</td><td><span class="tok">✓ Sì</span></td><td><span class="tok">✓ Sì</span></td><td><span class="tmd">Limitato</span></td><td><span class="tok">✓ Sì</span></td><td><span class="tok">Massima</span></td><td><span class="tok">Immediata</span></td></tr>
+        <tr><td>UV</td><td><span class="tmd">Limitato</span></td><td><span class="tok">✓ Sì</span></td><td><span class="tok">✓ Ottimo</span></td><td><span class="tok">✓ Sì</span></td><td><span class="tmd">Media</span></td><td><span class="tok">Istantanea</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     QUOTE
+═══════════════════════════════ -->
+<section id="qsec" class="rv">
+  <p class="qt">"Il file <span class="hlg">quasi giusto</span> è il peggior incubo di ogni tipografia."</p>
+  <p class="qt-by">— Gabriele Alari · Ciclo Produttivo della Stampa · 2025</p>
+</section>
+
+<!-- ═══════════════════════════════
+     CAP 4 — POST-STAMPA
+═══════════════════════════════ -->
+<section id="cap4" class="sec">
+  <div class="slbl rv">Capitolo 04</div>
+  <h2 class="sh rv d1">Post-<span class="hl">Stampa</span></h2>
+
+  <div class="ch-band rv d2">
+    <div class="ch-num">04</div>
+    <div class="ch-content">
+      <div class="ch-label">Fase 3 del ciclo produttivo</div>
+      <div class="ch-title">Dal foglio stampato al prodotto finito</div>
+      <div class="ch-text">La post-stampa trasforma i fogli usciti dalla macchina in prodotti finiti e pronti per il mercato. Taglio, piega, rilegatura e finiture speciali: <strong>ogni operazione aggiunge valore</strong> e può fare la differenza tra un prodotto ordinario e uno memorabile.</div>
+    </div>
+  </div>
+
+  <div class="cgrid cg2 rv d3">
+    <div class="card">
+      <div class="c-ico">⊟</div>
+      <div class="c-title">Operazioni principali</div>
+      <div class="c-body">
+        <strong>Taglio</strong> — con taglierina industriale di precisione, rispettando l'abbondanza (bleed) di 3mm prevista in fase di pre-stampa.<br><br>
+        <strong>Piega</strong> — parallela, a croce, a fisarmonica, a portafoglio, a bandiera. Ogni tipo di piega richiede una lunghezza diversa dei pannelli per compensare lo spessore della carta.<br><br>
+        <strong>Rilegatura</strong> — spirale (per quaderni e manuali), brossura fresata (tascabili), cucita (riviste, alta qualità), cartonata (libri di pregio), a punto metallico (brochure).
+      </div>
+      <div class="c-tags"><span class="ctag">Taglio</span><span class="ctag">Piega</span><span class="ctag">Rilegatura</span><span class="ctag">Fustellatura</span></div>
+    </div>
+
+    <div class="card">
+      <div class="c-ico">✦</div>
+      <div class="c-title">Finiture e nobilitazioni</div>
+      <div class="c-body">
+        Le <strong>finiture</strong> aggiungono valore percepito, protezione e impatto visivo:
+        <br><br>
+        <strong>Plastificazione lucida</strong> — superficie brillante, protegge e intensifica i colori<br>
+        <strong>Plastificazione opaca</strong> — aspetto premium morbido, meno riflessi<br>
+        <strong>Vernice UV selettiva</strong> — effetto gloss su aree specifiche sopra fondo opaco<br>
+        <strong>Stampa a caldo (foil)</strong> — foglio oro, argento o colorato per effetti di lusso<br>
+        <strong>Goffratura</strong> — rilievo fisico a secco, crea texture tattile<br>
+        <strong>Fustellatura</strong> — taglio sagomato con forme personalizzate non rettangolari
+      </div>
+      <div class="c-tags"><span class="ctag">Plastificazione</span><span class="ctag">Vernice UV</span><span class="ctag">Foil</span><span class="ctag">Goffratura</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     GANTT
+═══════════════════════════════ -->
+<section id="gantt" class="sec alt">
+  <div class="slbl rv">Strumento di pianificazione</div>
+  <h2 class="sh rv d1">Diagramma <span class="d">di</span> Gantt</h2>
+
+  <div class="ch-band rv d2">
+    <div class="ch-num">⊞</div>
+    <div class="ch-content">
+      <div class="ch-label">Project management</div>
+      <div class="ch-title">Come funziona il Gantt</div>
+      <div class="ch-text">Il diagramma di Gantt è un grafico a barre che mostra le attività del progetto nel tempo. Ogni barra rappresenta un'attività: la posizione orizzontale indica quando inizia e finisce. Le barre possono sovrapporsi quando le attività procedono in parallelo. Lo <strong>strumento fondamentale</strong> per pianificare, monitorare e comunicare l'avanzamento di un progetto.</div>
+    </div>
+  </div>
+
+  <div class="g-wrap rv d3" id="gw">
+    <div class="g-head">
+      <div class="g-hcell">Attività</div>
+      <div class="g-hcells">
+        <div class="g-hcell2">Giorno 1</div>
+        <div class="g-hcell2">Giorno 5</div>
+        <div class="g-hcell2">Giorno 10</div>
+        <div class="g-hcell2">Giorno 15</div>
+        <div class="g-hcell2">Giorno 20</div>
+      </div>
+    </div>
+
+    <div class="g-row"><div class="g-lbl">Brief &amp; analisi</div><div class="g-trk"><div class="gbar gb1">Pianificazione</div></div></div>
+    <div class="g-row"><div class="g-lbl">Moodboard</div><div class="g-trk"><div class="gbar gb1" style="left:8%;width:20%;transition-delay:.12s">Stile</div></div></div>
+    <div class="g-row"><div class="g-lbl">DTP &amp; impaginazione</div><div class="g-trk"><div class="gbar gb2">Impaginazione</div></div></div>
+    <div class="g-row"><div class="g-lbl">Pre-stampa</div><div class="g-trk"><div class="gbar gb3">Controlli tecnici</div></div></div>
+    <div class="g-row"><div class="g-lbl">Cianografia</div><div class="g-trk"><div class="gbar gb4" style="left:50%;width:14%;transition-delay:.46s">Approvazione</div></div></div>
+    <div class="g-row"><div class="g-lbl">Stampa</div><div class="g-trk"><div class="gbar gb5">Produzione</div></div></div>
+    <div class="g-row"><div class="g-lbl">Post-stampa</div><div class="g-trk"><div class="gbar gb6">Finitura</div></div></div>
+    <div class="g-row"><div class="g-lbl">Consegna</div><div class="g-trk"><div class="gbar gb7" style="left:85%;width:15%">Delivery</div></div></div>
+
+    <div class="g-legend">
+      <div class="gl"><div class="gl-d" style="background:var(--b)"></div>Pianificazione</div>
+      <div class="gl"><div class="gl-d" style="background:rgba(0,85,255,.5)"></div>DTP</div>
+      <div class="gl"><div class="gl-d" style="background:rgba(0,150,220,.65)"></div>Pre-stampa</div>
+      <div class="gl"><div class="gl-d" style="background:var(--el)"></div>Approvazione</div>
+      <div class="gl"><div class="gl-d" style="background:rgba(0,207,255,.25)"></div>Stampa</div>
+      <div class="gl"><div class="gl-d" style="background:rgba(0,85,255,.35)"></div>Post-stampa</div>
+    </div>
+
+    <div class="g-note">
+      <strong>Nota sulla cianografia:</strong> la barra di approvazione è un <strong>blocco critico</strong>. Finché il cliente non firma il "Visto si stampi", la stampa non può partire. Pianificare questo tempo di attesa è essenziale per rispettare le scadenze di consegna. Nei progetti professionali si prevedono sempre 24-48 ore per l'approvazione.
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     LAVAGNA
+═══════════════════════════════ -->
+<section id="board-sec" class="sec">
+  <div class="slbl rv">Strumento interattivo</div>
+  <h2 class="sh rv d1">Lavagna <span class="hl">Digitale</span></h2>
+  <p class="rv d2" style="font-size:.88rem;color:var(--dim);line-height:1.75;max-width:560px;margin-bottom:2rem">Scrivi, disegna, prendi appunti — con il mouse o con le dita sul touchscreen. Usa la gomma per cancellare parti specifiche oppure il tasto <strong style="color:rgba(238,238,245,.55)">Pulisci tutto</strong> per ricominciare.</p>
+
+  <div class="board-wrap rv d3">
+    <div class="board-toolbar">
+      <span class="tb-label">Colore</span>
+      <div class="tb-color sel" id="cl-el" style="background:#0055FF" title="Blu" onclick="setColor('#0055FF',this)"></div>
+      <div class="tb-color" id="cl-w" style="background:#EEEEF5" title="Bianco" onclick="setColor('#EEEEF5',this)"></div>
+      <div class="tb-color" id="cl-cy" style="background:#00CFFF" title="Ciano" onclick="setColor('#00CFFF',this)"></div>
+      <div class="tb-color" id="cl-re" style="background:#FF4466" title="Rosso" onclick="setColor('#FF4466',this)"></div>
+      <div class="tb-color" id="cl-gr" style="background:#22DD88" title="Verde" onclick="setColor('#22DD88',this)"></div>
+      <div class="tb-sep"></div>
+      <div class="tb-sz">
+        <span>Spessore</span>
+        <input type="range" id="sz" min="1" max="24" value="3" oninput="setSize(this.value)">
+        <span id="szv">3px</span>
+      </div>
+      <div class="tb-sep"></div>
+      <button class="tb-btn act" id="tb-pen" onclick="setTool('pen')">✎ Penna</button>
+      <button class="tb-btn" id="tb-era" onclick="setTool('eraser')">◻ Gomma</button>
+      <button class="tb-clear" onclick="clearBoard()">✕ Pulisci tutto</button>
+    </div>
+    <canvas id="board"></canvas>
+    <div class="board-hint">Trascina per disegnare · Funziona con mouse e touch · Usa la gomma per cancellare aree specifiche</div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+  <div>
+    <div class="fn">Gabriele <em>Alari</em></div>
+    <div class="fs">Grafica &amp; Comunicazione visiva — 2025</div>
+  </div>
+  <div class="fy">© 2025</div>
+</footer>
+
+<script>
+/* ═══ CURSOR ═══ */
+const C=document.getElementById('C'),CR=document.getElementById('CR');
+let mx=-100,my=-100,rx=-100,ry=-100;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+(function t(){
+  C.style.left=mx+'px';C.style.top=my+'px';
+  rx+=(mx-rx)*.1;ry+=(my-ry)*.1;
+  CR.style.left=rx+'px';CR.style.top=ry+'px';
+  requestAnimationFrame(t);
+})();
+document.querySelectorAll('a,button,.card,.ink-card,.pdb,.hst,.g-trk,.ctag,.fbox,.tb-color').forEach(el=>{
+  el.addEventListener('mouseenter',()=>document.body.classList.add('hov'));
+  el.addEventListener('mouseleave',()=>document.body.classList.remove('hov'));
+});
+
+/* ═══ MAGNETIC BUTTONS ═══ */
+['b1','b2'].forEach(id=>{
+  const b=document.getElementById(id);if(!b)return;
+  b.addEventListener('mousemove',e=>{
+    const r=b.getBoundingClientRect();
+    b.style.transform=`translate(${(e.clientX-r.left-r.width/2)*.2}px,${(e.clientY-r.top-r.height/2)*.2}px)`;
+  });
+  b.addEventListener('mouseleave',()=>b.style.transform='');
+});
+
+/* ═══ CARD SPOTLIGHT ═══ */
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('mousemove',e=>{
+    const r=c.getBoundingClientRect();
+    c.style.setProperty('--mx',((e.clientX-r.left)/r.width*100).toFixed(1)+'%');
+    c.style.setProperty('--my',((e.clientY-r.top)/r.height*100).toFixed(1)+'%');
+  });
+});
+
+/* ═══ LOADER PLANE ═══ */
+(function(){
+  const pl=document.getElementById('PL'),tr=document.getElementById('TR'),tg=document.getElementById('TG');
+  if(!pl)return;
+  const dur=3000,t0=Date.now();
+  const px=[6,18,76,108],py=[90,42,18,-4];
+  function b(t,a,c1,c2,d){const m=1-t;return m*m*m*a+3*m*m*t*c1+3*m*t*t*c2+t*t*t*d}
+  function ei(t){return t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
+  function fr(){
+    const raw=Math.min((Date.now()-t0)/dur,1),e=ei(raw);
+    const x=b(e,px[0],px[1],px[2],px[3]),y=b(e,py[0],py[1],py[2],py[3]);
+    const de=Math.min(e+.01,1);
+    const ang=Math.atan2(b(de,py[0],py[1],py[2],py[3])-y,b(de,px[0],px[1],px[2],px[3])-x)*180/Math.PI;
+    pl.setAttribute('transform',`translate(${x},${y}) rotate(${ang})`);
+    const op=Math.min(raw*3.5,.6);
+    tr.setAttribute('x2',x);tr.setAttribute('y2',y);tr.setAttribute('opacity',op);
+    tg.setAttribute('cx',x);tg.setAttribute('cy',y);tg.setAttribute('opacity',Math.min(op*1.5,.95));
+    if(raw<1)requestAnimationFrame(fr);
+    else{pl.style.opacity=0;tr.style.opacity=0;tg.style.opacity=0}
+  }
+  requestAnimationFrame(fr);
+})();
+
+window.addEventListener('load',()=>{
+  const ld=document.getElementById('LOAD');
+  ld.classList.add('out');
+  setTimeout(()=>ld.style.display='none',5600);
+  setTimeout(()=>document.getElementById('popup').classList.add('show'),7000);
+});
+function closePopup(){document.getElementById('popup').classList.remove('show')}
+
+/* ═══ SCROLL REVEAL ═══ */
+const ro=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('on')})},{threshold:.07});
+document.querySelectorAll('.rv').forEach(el=>ro.observe(el));
+
+/* ═══ GANTT ANIMATE ═══ */
+const go=new IntersectionObserver(es=>{
+  if(es[0].isIntersecting){document.querySelectorAll('.gbar').forEach(b=>b.classList.add('on'));go.disconnect()}
+},{threshold:.2});
+const gw=document.getElementById('gw');if(gw)go.observe(gw);
+
+/* ═══ COUNTER ANIMATION ═══ */
+function animCnt(el,target,dur=1600){
+  const t0=Date.now();
+  (function t(){
+    const p=Math.min((Date.now()-t0)/dur,1);
+    el.textContent=Math.round((1-Math.pow(1-p,3))*target);
+    if(p<1)requestAnimationFrame(t);else el.textContent=target;
+  })();
+}
+const co=new IntersectionObserver(es=>{
+  if(es[0].isIntersecting){
+    document.querySelectorAll('[data-t]').forEach(el=>animCnt(el,+el.dataset.t));
+    co.disconnect();
+  }
+},{threshold:.5});
+const hf=document.querySelector('.hfoot');if(hf)co.observe(hf);
+
+/* ═══ DTP FLOW CYCLE ═══ */
+(function(){
+  const boxes=document.querySelectorAll('.fbox');
+  if(!boxes.length)return;
+  let i=0;
+  setInterval(()=>{
+    boxes.forEach(b=>b.classList.remove('lit'));
+    boxes[i].classList.add('lit');
+    i=(i+1)%boxes.length;
+  },850);
+})();
+
+/* ═══ BOARD ═══ */
+const canvas=document.getElementById('board');
+const ctx=canvas.getContext('2d');
+let drawing=false,tool='pen',color='#0055FF',size=3;
+let lastX=0,lastY=0;
+
+function resizeBoard(){
+  const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+  canvas.width=canvas.offsetWidth;
+  canvas.height=500;
+  ctx.putImageData(img,0,0);
+}
+resizeBoard();
+window.addEventListener('resize',resizeBoard);
+
+function getPos(e){
+  const r=canvas.getBoundingClientRect();
+  if(e.touches){
+    return{x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top};
+  }
+  return{x:e.clientX-r.left,y:e.clientY-r.top};
+}
+
+function startDraw(e){
+  drawing=true;
+  const p=getPos(e);
+  lastX=p.x;lastY=p.y;
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,size/2,0,Math.PI*2);
+  ctx.fillStyle=tool==='eraser'?'#10101e':color;
+  ctx.fill();
+  e.preventDefault();
+}
+
+function draw(e){
+  if(!drawing)return;
+  const p=getPos(e);
+  ctx.beginPath();
+  ctx.moveTo(lastX,lastY);
+  ctx.lineTo(p.x,p.y);
+  ctx.strokeStyle=tool==='eraser'?'#10101e':color;
+  ctx.lineWidth=tool==='eraser'?size*5:size;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.stroke();
+  lastX=p.x;lastY=p.y;
+  e.preventDefault();
+}
+
+function stopDraw(){drawing=false}
+
+canvas.addEventListener('mousedown',startDraw);
+canvas.addEventListener('mousemove',draw);
+canvas.addEventListener('mouseup',stopDraw);
+canvas.addEventListener('mouseleave',stopDraw);
+canvas.addEventListener('touchstart',startDraw,{passive:false});
+canvas.addEventListener('touchmove',draw,{passive:false});
+canvas.addEventListener('touchend',stopDraw);
+
+/* Board in draw mode — disable global cursor change */
+canvas.addEventListener('mouseenter',()=>{document.body.classList.remove('hov');document.body.classList.add('draw-mode')});
+canvas.addEventListener('mouseleave',()=>document.body.classList.remove('draw-mode'));
+
+function setColor(c,el){
+  color=c;
+  document.querySelectorAll('.tb-color').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  if(tool==='eraser')setTool('pen');
+}
+function setSize(v){
+  size=+v;
+  document.getElementById('szv').textContent=v+'px';
+}
+function setTool(t){
+  tool=t;
+  document.getElementById('tb-pen').classList.toggle('act',t==='pen');
+  document.getElementById('tb-era').classList.toggle('act',t==='eraser');
+}
+function clearBoard(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+}
+</script>
+</body>
+</html>
